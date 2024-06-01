@@ -1,0 +1,1 @@
+[Hackattic](https://hackattic.com) challenge solutions written in Rust.
