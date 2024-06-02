@@ -1,6 +1,7 @@
 use clap::Parser;
 use std::error::Error;
 
+mod backup_restore;
 mod help_me_unpack;
 mod mini_miner;
 
@@ -11,6 +12,7 @@ const ACCESS_TOKEN: &str = "?access_token=a77a711f47366f38";
 enum Challenge {
     MiniMiner,
     HelpMeUnpack,
+    BackupRestore,
 }
 
 impl Challenge {
@@ -18,12 +20,14 @@ impl Challenge {
         match &self {
             Challenge::HelpMeUnpack => "help_me_unpack",
             Challenge::MiniMiner => "mini_miner",
+            Challenge::BackupRestore => "backup_restore",
         }
     }
-    pub fn solve(&self, input: String) -> Result<String, Box<dyn Error>> {
+    pub async fn solve(&self, input: String) -> Result<String, Box<dyn Error>> {
         match &self {
             Challenge::MiniMiner => mini_miner::mini_miner(input),
             Challenge::HelpMeUnpack => help_me_unpack::help_me_unpack(input),
+            Challenge::BackupRestore => backup_restore::backup_restore(input).await,
         }
     }
 }
@@ -35,7 +39,7 @@ struct Args {
     #[arg(short, long)]
     challenge: Challenge,
 
-    #[arg(short, long, default_value_t = true)]
+    #[arg(short, long, action)]
     playground: bool,
 }
 
@@ -47,7 +51,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let solve_url = get_solve_url(args.challenge, args.playground);
 
     let input = get_input(&client, problem_url).await?;
-    let output = args.challenge.solve(input)?;
+    let output = args.challenge.solve(input).await?;
 
     post_output(&client, solve_url, output).await?;
     Ok(())
