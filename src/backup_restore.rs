@@ -1,13 +1,15 @@
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use flate2::read::GzDecoder;
-use tokio_postgres::NoTls;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use std::fs;
 use std::io::prelude::*;
 use std::process::Command;
 use std::{thread, time};
-use std::fs;
+use tokio_postgres::{Client, NoTls};
+
+const SQL_DUMP_FILE: &str = "dump.sql";
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Input {
@@ -22,14 +24,48 @@ struct Output {
 pub async fn backup_restore(input: String) -> Result<String, Box<dyn Error>> {
     let input: Input = serde_json::from_str::<Input>(&input)?;
 
+    write_sql_dump_to_file(input)?;
+
+    let client = setup_postgres().await?;
+
+    let query_result = client
+        .query(
+            "SELECT ssn FROM public.criminal_records WHERE status = 'alive'",
+            &[],
+        )
+        .await?;
+
+    let output = Output {
+        alive_ssns: query_result.iter().map(|r| r.get(0)).collect(),
+    };
+
+    cleanup_side_effects()?;
+
+    Ok(serde_json::to_string(&output)?)
+}
+
+fn write_sql_dump_to_file(input: Input) -> Result<(), Box<dyn Error>> {
     let b64_decoded = BASE64_STANDARD.decode(input.dump)?;
 
     let mut decoder = GzDecoder::new(b64_decoded.as_slice());
     let mut dump = String::new();
     decoder.read_to_string(&mut dump).unwrap();
 
-    fs::write("dump.sql", dump)?;
+    fs::write(SQL_DUMP_FILE, dump)?;
+    Ok(())
+}
 
+fn cleanup_side_effects() -> Result<(), Box<dyn Error>> {
+    Command::new("sh")
+        .arg("-c")
+        .arg("docker rm -f postgresql")
+        .status()?;
+
+    fs::remove_file(SQL_DUMP_FILE)?;
+    Ok(())
+}
+
+async fn setup_postgres() -> Result<Client, Box<dyn Error>> {
     Command::new("sh")
         .arg("-c")
         .arg("docker run -itd -e POSTGRES_USER=postgres -e POSTGRES_HOST_AUTH_METHOD=trust -p 5432:5432 --name postgresql postgres:12-alpine")
@@ -39,10 +75,10 @@ pub async fn backup_restore(input: String) -> Result<String, Box<dyn Error>> {
 
     Command::new("sh")
         .arg("-c")
-        .arg("psql -h localhost -U postgres postgres -f dump.sql")
+        .arg(format!("psql -h localhost -U postgres postgres -f {}", SQL_DUMP_FILE))
         .status()?;
-    
-    let (client, connection) = 
+
+    let (client, connection) =
         tokio_postgres::connect("host=localhost user=postgres", NoTls).await?;
 
     tokio::spawn(async move {
@@ -51,30 +87,5 @@ pub async fn backup_restore(input: String) -> Result<String, Box<dyn Error>> {
         }
     });
 
-    let query_result = client.query(
-        "SELECT ssn FROM public.criminal_records WHERE status = 'alive'",
-        &[],
-    ).await?;
-
-    let alive_ssns: Vec<String> = query_result.iter().map(|r| r.get(0)).collect();
-
-    Command::new("sh")
-        .arg("-c")
-        .arg("docker stop postgresql")
-        .status()?;
-
-    Command::new("sh")
-        .arg("-c")
-        .arg("docker rm postgresql")
-        .status()?;
-
-    fs::remove_file("dump.sql")?;
-
-    let output = Output {
-        alive_ssns: alive_ssns,
-    };
-
-    Ok(serde_json::to_string(&output)?)
+    Ok(client)
 }
-
-
