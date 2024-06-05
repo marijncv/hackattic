@@ -2,6 +2,7 @@ use clap::Parser;
 use std::error::Error;
 
 mod backup_restore;
+mod brute_force_zip;
 mod help_me_unpack;
 mod mini_miner;
 
@@ -13,6 +14,7 @@ enum Challenge {
     MiniMiner,
     HelpMeUnpack,
     BackupRestore,
+    BruteForceZip,
 }
 
 impl Challenge {
@@ -21,6 +23,7 @@ impl Challenge {
             Challenge::HelpMeUnpack => "help_me_unpack",
             Challenge::MiniMiner => "mini_miner",
             Challenge::BackupRestore => "backup_restore",
+            Challenge::BruteForceZip => "brute_force_zip",
         }
     }
     pub async fn solve(&self, input: String) -> Result<String, Box<dyn Error>> {
@@ -28,6 +31,7 @@ impl Challenge {
             Challenge::MiniMiner => mini_miner::mini_miner(input),
             Challenge::HelpMeUnpack => help_me_unpack::help_me_unpack(input),
             Challenge::BackupRestore => backup_restore::backup_restore(input).await,
+            Challenge::BruteForceZip => brute_force_zip::brute_force_zip(input).await,
         }
     }
 }

@@ -75,7 +75,10 @@ async fn setup_postgres() -> Result<Client, Box<dyn Error>> {
 
     Command::new("sh")
         .arg("-c")
-        .arg(format!("psql -h localhost -U postgres postgres -f {}", SQL_DUMP_FILE))
+        .arg(format!(
+            "psql -h localhost -U postgres postgres -f {}",
+            SQL_DUMP_FILE
+        ))
         .status()?;
 
     let (client, connection) =
