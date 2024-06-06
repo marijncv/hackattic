@@ -5,6 +5,7 @@ mod backup_restore;
 mod brute_force_zip;
 mod help_me_unpack;
 mod mini_miner;
+mod password_hashing;
 
 const BASE_URL: &str = "https://hackattic.com/challenges/";
 const ACCESS_TOKEN: &str = "?access_token=a77a711f47366f38";
@@ -15,6 +16,7 @@ enum Challenge {
     HelpMeUnpack,
     BackupRestore,
     BruteForceZip,
+    PasswordHashing,
 }
 
 impl Challenge {
@@ -24,6 +26,7 @@ impl Challenge {
             Challenge::MiniMiner => "mini_miner",
             Challenge::BackupRestore => "backup_restore",
             Challenge::BruteForceZip => "brute_force_zip",
+            Challenge::PasswordHashing => "password_hashing",
         }
     }
     pub async fn solve(&self, input: String) -> Result<String, Box<dyn Error>> {
@@ -32,6 +35,7 @@ impl Challenge {
             Challenge::HelpMeUnpack => help_me_unpack::help_me_unpack(input),
             Challenge::BackupRestore => backup_restore::backup_restore(input).await,
             Challenge::BruteForceZip => brute_force_zip::brute_force_zip(input).await,
+            Challenge::PasswordHashing => password_hashing::password_hashing(input),
         }
     }
 }
