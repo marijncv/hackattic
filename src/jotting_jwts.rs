@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs;
 use std::io::Read;
-use std::sync::Mutex;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -60,7 +60,6 @@ pub fn start_server() {
     let result_vec: Vec<String> = Vec::new();
     let result = Arc::new(Mutex::new(result_vec));
 
-
     let server = rouille::Server::new("0.0.0.0:8001", move |request| {
         let result = Arc::clone(&result);
 
@@ -73,22 +72,20 @@ pub fn start_server() {
         let payload = get_payload(&jwt);
 
         let response = match valid_payload(&payload) && signed_jwt == jwt.signature {
-            true => {
-                match payload.append {
-                    Some(a) => {
-                        let mut r = result.lock().unwrap();
-                        r.push(a.to_owned());
-                        Response::text("")
-                    }
-                    None => {
-                        let r = result.lock().unwrap().concat();
-    
-                        let challenge_response = ChallengeResponse { solution: r };
-                        Response::json(&challenge_response)
-                    }
+            true => match payload.append {
+                Some(a) => {
+                    let mut r = result.lock().unwrap();
+                    r.push(a.to_owned());
+                    Response::text("")
+                }
+                None => {
+                    let r = result.lock().unwrap().concat();
+
+                    let challenge_response = ChallengeResponse { solution: r };
+                    Response::json(&challenge_response)
                 }
             },
-            false => Response::text("")
+            false => Response::text(""),
         };
         response
     })
@@ -96,7 +93,7 @@ pub fn start_server() {
     server.run()
 }
 
-fn get_jwt(data: Option<RequestBody>) -> Option<Jwt>{
+fn get_jwt(data: Option<RequestBody>) -> Option<Jwt> {
     match data {
         Some(mut b) => {
             let mut body = String::new();
@@ -119,22 +116,22 @@ fn sign_jwt(header: &String, payload: &String, jwt_secret: &String) -> String {
 fn get_payload(jwt: &Jwt) -> Payload {
     serde_json::from_str::<Payload>(
         &String::from_utf8(B64_ENGINE.decode(jwt.payload.as_str()).unwrap()).unwrap(),
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 fn valid_payload(payload: &Payload) -> bool {
     let start = SystemTime::now();
-    let now = start
-        .duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let now = start.duration_since(UNIX_EPOCH).unwrap().as_secs();
 
     match payload.exp {
         Some(exp) if now > exp => return false,
-        _ => ()
+        _ => (),
     }
 
     match payload.nbf {
         Some(nbf) if now < nbf => return false,
-        _ => ()
+        _ => (),
     }
     true
 }
