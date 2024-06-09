@@ -1,6 +1,7 @@
 mod backup_restore;
 mod brute_force_zip;
 mod challenges;
+mod collision_course;
 mod help_me_unpack;
 mod jotting_jwts;
 mod mini_miner;

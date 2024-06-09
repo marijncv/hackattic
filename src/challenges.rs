@@ -1,5 +1,6 @@
 use crate::backup_restore;
 use crate::brute_force_zip;
+use crate::collision_course;
 use crate::help_me_unpack;
 use crate::jotting_jwts;
 use crate::mini_miner;
@@ -14,6 +15,7 @@ pub enum Challenge {
     BruteForceZip,
     PasswordHashing,
     JottingJwts,
+    CollisionCourse,
 }
 
 impl Challenge {
@@ -25,6 +27,7 @@ impl Challenge {
             Challenge::BruteForceZip => "brute_force_zip",
             Challenge::PasswordHashing => "password_hashing",
             Challenge::JottingJwts => "jotting_jwts",
+            Challenge::CollisionCourse => "collision_course",
         }
     }
     pub async fn solve(&self, input: String) -> Result<String, Box<dyn Error>> {
@@ -35,6 +38,7 @@ impl Challenge {
             Challenge::BruteForceZip => brute_force_zip::brute_force_zip(input).await,
             Challenge::PasswordHashing => password_hashing::password_hashing(input),
             Challenge::JottingJwts => jotting_jwts::jotting_jwts(input).await,
+            Challenge::CollisionCourse => collision_course::collision_course(input).await,
         }
     }
 }
