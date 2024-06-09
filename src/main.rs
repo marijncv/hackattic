@@ -6,6 +6,7 @@ mod help_me_unpack;
 mod jotting_jwts;
 mod mini_miner;
 mod password_hashing;
+mod reading_qr;
 mod servers;
 mod util;
 
