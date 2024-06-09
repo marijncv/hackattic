@@ -46,7 +46,7 @@ pub fn password_hashing(input: String) -> Result<String, Box<dyn Error>> {
     let input = serde_json::from_str::<Input>(&input)?;
 
     let password = input.password.as_bytes();
-    let salt = BASE64_STANDARD.decode(&input.salt)?; 
+    let salt = BASE64_STANDARD.decode(&input.salt)?;
 
     let sha = Sha256::digest(password);
     let hmac = HMAC::mac(password, salt.clone());
