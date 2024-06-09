@@ -1,7 +1,7 @@
 use base64::Engine;
 use base64::{alphabet, engine};
 use hmac_sha256::HMAC;
-use rouille::Response;
+use rouille::{RequestBody, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs;
@@ -56,38 +56,6 @@ pub async fn jotting_jwts(input: String) -> Result<String, Box<dyn Error>> {
     Ok(output)
 }
 
-fn sign_jwt(header: &String, payload: &String, jwt_secret: &String) -> String {
-    B64_ENGINE.encode(HMAC::mac(header.to_owned() + "." + &payload, jwt_secret))
-}
-
-fn verify_payload(payload: &Payload) -> bool {
-    let start = SystemTime::now();
-    let now = start
-        .duration_since(UNIX_EPOCH).unwrap().as_secs();
-
-    println!("time: {:?}", now);
-
-    match payload.exp {
-        Some(exp) => {
-            if now > exp {
-                return false
-            }
-        },
-        None => ()
-    }
-
-    match payload.nbf {
-        Some(nbf) => {
-            if now < nbf {
-                return false
-            }
-        },
-        None => ()
-    }
-
-    true
-}
-
 pub fn start_server() {
     let result_vec: Vec<String> = Vec::new();
     let result = Arc::new(Mutex::new(result_vec));
@@ -98,42 +66,24 @@ pub fn start_server() {
 
         let jwt_secret = fs::read_to_string("jwt-secret").unwrap_or("".to_string());
 
-        let jwt = match request.data() {
-            Some(mut b) => {
-                let mut body = String::new();
-                b.read_to_string(&mut body).unwrap();
-                let mut token = body.splitn(3, ".");
-                Some(Jwt {
-                    header: token.next().unwrap().to_string(),
-                    payload: token.next().unwrap().to_string(),
-                    signature: token.next().unwrap().to_string(),
-                })
-            }
-            _ => None,
-        }
-        .unwrap();
+        let jwt = get_jwt(request.data()).unwrap();
 
-        let my_signed_jwt = sign_jwt(&jwt.header, &jwt.payload, &jwt_secret);
-        let payload: Payload = serde_json::from_str::<Payload>(
-            &String::from_utf8(B64_ENGINE.decode(jwt.payload.as_str()).unwrap()).unwrap(),
-        )
-        .unwrap();
-        println!("{:?}", payload);
+        let signed_jwt = sign_jwt(&jwt.header, &jwt.payload, &jwt_secret);
 
-        let response = match verify_payload(&payload) && my_signed_jwt == jwt.signature {
+        let payload = get_payload(&jwt);
+
+        let response = match valid_payload(&payload) && signed_jwt == jwt.signature {
             true => {
                 match payload.append {
                     Some(a) => {
                         let mut r = result.lock().unwrap();
                         r.push(a.to_owned());
-                        println!("{:?}",r);
                         Response::text("")
                     }
                     None => {
                         let r = result.lock().unwrap().concat();
     
                         let challenge_response = ChallengeResponse { solution: r };
-                        println!("{:?}", challenge_response);
                         Response::json(&challenge_response)
                     }
                 }
@@ -144,4 +94,47 @@ pub fn start_server() {
     })
     .unwrap();
     server.run()
+}
+
+fn get_jwt(data: Option<RequestBody>) -> Option<Jwt>{
+    match data {
+        Some(mut b) => {
+            let mut body = String::new();
+            b.read_to_string(&mut body).unwrap();
+            let mut token = body.splitn(3, ".");
+            Some(Jwt {
+                header: token.next().unwrap().to_string(),
+                payload: token.next().unwrap().to_string(),
+                signature: token.next().unwrap().to_string(),
+            })
+        }
+        _ => None,
+    }
+}
+
+fn sign_jwt(header: &String, payload: &String, jwt_secret: &String) -> String {
+    B64_ENGINE.encode(HMAC::mac(header.to_owned() + "." + &payload, jwt_secret))
+}
+
+fn get_payload(jwt: &Jwt) -> Payload {
+    serde_json::from_str::<Payload>(
+        &String::from_utf8(B64_ENGINE.decode(jwt.payload.as_str()).unwrap()).unwrap(),
+    ).unwrap()
+}
+
+fn valid_payload(payload: &Payload) -> bool {
+    let start = SystemTime::now();
+    let now = start
+        .duration_since(UNIX_EPOCH).unwrap().as_secs();
+
+    match payload.exp {
+        Some(exp) if now > exp => return false,
+        _ => ()
+    }
+
+    match payload.nbf {
+        Some(nbf) if now < nbf => return false,
+        _ => ()
+    }
+    true
 }
