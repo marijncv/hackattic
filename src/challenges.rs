@@ -5,6 +5,8 @@ use crate::help_me_unpack;
 use crate::jotting_jwts;
 use crate::mini_miner;
 use crate::password_hashing;
+use crate::reading_qr;
+use crate::tales_of_ssl;
 use std::error::Error;
 
 #[derive(clap::ValueEnum, Clone, Copy)]
@@ -16,6 +18,8 @@ pub enum Challenge {
     PasswordHashing,
     JottingJwts,
     CollisionCourse,
+    ReadingQr,
+    TalesOfSsl,
 }
 
 impl Challenge {
@@ -28,6 +32,8 @@ impl Challenge {
             Challenge::PasswordHashing => "password_hashing",
             Challenge::JottingJwts => "jotting_jwts",
             Challenge::CollisionCourse => "collision_course",
+            Challenge::ReadingQr => "reading_qr",
+            Challenge::TalesOfSsl => "tales_of_ssl",
         }
     }
     pub async fn solve(&self, input: String) -> Result<String, Box<dyn Error>> {
@@ -39,6 +45,8 @@ impl Challenge {
             Challenge::PasswordHashing => password_hashing::password_hashing(input),
             Challenge::JottingJwts => jotting_jwts::jotting_jwts(input).await,
             Challenge::CollisionCourse => collision_course::collision_course(input).await,
+            Challenge::ReadingQr => reading_qr::reading_qr(input).await,
+            Challenge::TalesOfSsl => tales_of_ssl::tales_of_ssl(input).await,
         }
     }
 }
