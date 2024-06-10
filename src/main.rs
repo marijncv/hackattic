@@ -7,6 +7,8 @@ mod jotting_jwts;
 mod mini_miner;
 mod password_hashing;
 mod servers;
+mod tales_of_ssl;
+mod reading_qr;
 mod util;
 
 use challenges::Challenge;
