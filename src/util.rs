@@ -16,16 +16,17 @@ pub fn get_solve_url(challenge: Challenge, playground: bool) -> String {
     BASE_URL.to_string() + challenge.as_str() + "/solve" + ACCESS_TOKEN + p
 }
 
-pub async fn get_input(client: &reqwest::Client, url: String) -> Result<String, Box<dyn Error>> {
+pub async fn get_input(url: String) -> Result<String, Box<dyn Error>> {
+    let client = reqwest::Client::new();
     let response = client.get(url).send().await?.text().await?;
     Ok(response)
 }
 
 pub async fn post_output(
-    client: &reqwest::Client,
     url: String,
     body: String,
 ) -> Result<(), Box<dyn Error>> {
+    let client = reqwest::Client::new();
     let request = client
         .post(url)
         .body(body)
