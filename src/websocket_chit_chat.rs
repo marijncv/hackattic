@@ -1,8 +1,8 @@
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use tungstenite::{connect, Message};
 use std::time::Instant;
-use regex::Regex;
+use tungstenite::{connect, Message};
 
 #[derive(Serialize, Deserialize)]
 struct Input {
@@ -17,8 +17,9 @@ struct Output {
 pub fn websocket_chit_chat(input: String) -> Result<String, Box<dyn Error>> {
     let input = serde_json::from_str::<Input>(&input)?;
 
-    let (mut socket, response) = connect("wss://hackattic.com/_/ws/".to_owned() + input.token.as_str()).unwrap();
-    
+    let (mut socket, response) =
+        connect("wss://hackattic.com/_/ws/".to_owned() + input.token.as_str()).unwrap();
+
     println!("Connected to the server");
     println!("Response HTTP code: {}", response.status());
     println!("Response contains the following headers:");
@@ -33,8 +34,8 @@ pub fn websocket_chit_chat(input: String) -> Result<String, Box<dyn Error>> {
         match msg.to_text() {
             Ok("ping!") => {
                 let elapsed = now.elapsed();
-                
-				let resp = match elapsed.as_millis() {
+
+                let resp = match elapsed.as_millis() {
                     0..=1100 => String::from("700"),
                     1101..=1750 => String::from("1500"),
                     1751..=2250 => String::from("2000"),
@@ -43,15 +44,15 @@ pub fn websocket_chit_chat(input: String) -> Result<String, Box<dyn Error>> {
                 };
                 socket.send(Message::Text(resp)).unwrap();
                 now = Instant::now();
-            },
+            }
             Ok(s) if s.starts_with("congratulations!") => {
                 let re = Regex::new("\"(.*)\"").unwrap();
                 secret = String::from(re.captures(s).unwrap().get(1).unwrap().as_str());
-                println!("{}",secret);
-                break
-            },
+                println!("{}", secret);
+                break;
+            }
             Ok(_) => (),
-            _ => break
+            _ => break,
         }
         println!("Received: {}", msg);
     }

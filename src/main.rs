@@ -6,11 +6,11 @@ mod help_me_unpack;
 mod jotting_jwts;
 mod mini_miner;
 mod password_hashing;
+mod reading_qr;
 mod servers;
 mod tales_of_ssl;
-mod reading_qr;
-mod websocket_chit_chat;
 mod util;
+mod websocket_chit_chat;
 
 use challenges::Challenge;
 use clap::Parser;
@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let input = util::get_input(problem_url).await?;
             let output = c.solve(input).await?;
-            
+
             util::post_output(solve_url, output).await?;
         }
         _ => (),

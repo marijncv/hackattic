@@ -22,10 +22,7 @@ pub async fn get_input(url: String) -> Result<String, Box<dyn Error>> {
     Ok(response)
 }
 
-pub async fn post_output(
-    url: String,
-    body: String,
-) -> Result<(), Box<dyn Error>> {
+pub async fn post_output(url: String, body: String) -> Result<(), Box<dyn Error>> {
     let client = reqwest::Client::new();
     let request = client
         .post(url)
